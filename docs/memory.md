@@ -197,6 +197,40 @@ Bare `docker compose up` now starts only db+prestart+backend+frontend.
 - Caveat noted honestly: live getDisplayMedia screen capture can't be driven headlessly;
   it's implemented + works in a secure context (localhost); seeded recording plays in drawer.
 
+### DEPLOY PREP (2026-06-22) — storage backend + Render migrate/seed (make test -> 73)
+- Task 1 STORAGE: new app/core/storage.py (StorageBackend ABC + LocalStorage + S3Storage via
+  boto3; get_storage() per settings.STORAGE_BACKEND). config.py [#002] added STORAGE_BACKEND
+  (default local) + S3_ENDPOINT_URL/S3_REGION/S3_ACCESS_KEY_ID/S3_SECRET_ACCESS_KEY/S3_BUCKET
+  + validator (s3 requires the S3 vars). attachments.py [#003] now save()s via storage and
+  download via StreamingResponse (PROXY bytes through the authed+scoped endpoint — NOT
+  presigned, so isolation holds; access check runs before any storage read). boto3 added to
+  backend/pyproject.toml + uv.lock (1.43.34; regen via `docker run --rm -v $PWD:/repo -w /repo
+  backend:latest uv lock`). local is default -> dev needs no B2 creds.
+- Tests (mock boto3, no real B2): tests/core/test_storage.py (+ tests/core/__init__.py),
+  tests/utils/fake_s3.py (FakeS3Client), test_tickets.py::test_attachment_via_s3_backend
+  (s3 backend via mocked client; cross-org GET still 404).
+- Task 2 RENDER: new backend/scripts/start.sh = `bash scripts/prestart.sh` (migrate +
+  initial_data + idempotent seed) then `exec fastapi run ...`. Render Start Command =
+  `bash scripts/start.sh`. Local compose UNCHANGED (prestart service still does it).
+- VERIFIED: make test 73 passed; local STORAGE_BACKEND=local e2e (upload PNG -> stream 200,
+  bytes match, file on /app/uploads volume). Reset to clean baseline (orgs=1/users=12/tickets=0).
+- NOT committed/pushed (per instruction). Stack up at :5174/:8000.
+
+### PUSHED TO GITHUB (2026-06-22) — new PUBLIC repo
+- Repo: https://github.com/sumeetrathi-ai/Unveilix-Support-Site (branch main, commit c22b96b).
+  Auth: SSH as sumeetrathi-ai (key fingerprint SHA256:Um5K2Pl…L0T8, matches ~/.ssh/id_ed25519).
+  Commit author = sumeet.rathi@getcarnera.com. FRESH history (rm -rf .git; git init -b main) —
+  dropped the fastapi-template history + old example .env from history.
+- PUBLIC repo secret-safety done: /.env gitignored (real secrets local-only); .copier/ gitignored
+  (its answers file held secret_key/postgres_password/first_superuser_password); seed.py pilot
+  passwords externalised to SEED_CLIENT_PASSWORD/SEED_ADMIN_PASSWORD (real values in local .env,
+  source has only non-secret placeholders changeme-client/changeme-admin); scrubbed password
+  literals from README/PROGRESS/memory.md (-> "(SEED_*_PASSWORD in .env)") and from Login.tsx
+  hint. frontend/.env IS committed (only localhost VITE_API_URL/MAILCATCHER_HOST — needed by the
+  Docker build). Verified staged tree: no root .env, no .copier, no caches, no password/secret
+  values. 176 files.
+- TODO before external use: rotate pilot passwords + force-change-on-first-login (deployment).
+
 ### SEED BASELINE CHANGE (2026-06-22) — demo data removed; Carnera + Unveilix accounts
 - seed.py [#003] REWRITTEN: removed ALL demo data (Pennrose/MQOL/Northwind orgs, will.flynn/
   ops/it + adit/anubhav/nick users, and every sample ticket/comment/attachment/activity).

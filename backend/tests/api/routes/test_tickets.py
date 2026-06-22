@@ -15,6 +15,7 @@ from sqlmodel import Session
 from app import crud
 from app.core.config import settings
 from app.models import Family, Organization, Role, UserCreate
+from tests.utils.fake_s3 import FakeS3Client
 from tests.utils.utils import random_email, random_lower_string
 
 API = settings.API_V1_STR
@@ -340,6 +341,39 @@ def test_close_requires_rca(client: TestClient, tenant: SimpleNamespace) -> None
     client.patch(f"{API}/tickets/{tid}", headers=tenant.h_agent, json={"status": "in_testing"})
     r3 = client.patch(f"{API}/tickets/{tid}", headers=tenant.h_agent, json={"status": "closed"})
     assert r3.status_code == 200
+
+
+def test_attachment_via_s3_backend(
+    client: TestClient, tenant: SimpleNamespace, monkeypatch
+) -> None:
+    """Attachments work through the S3 (Backblaze B2) backend with a MOCKED client, and tenant
+    isolation still holds — the owning client streams the bytes back, another org's client gets
+    404. Proves the access check runs before any storage read regardless of backend."""
+    from app.core import storage as storage_mod
+
+    fake = FakeS3Client()
+    monkeypatch.setattr(settings, "STORAGE_BACKEND", "s3")
+    monkeypatch.setattr(settings, "S3_BUCKET", "test-bucket")
+    monkeypatch.setattr(storage_mod, "_get_s3_client", lambda: fake)
+
+    payload = b"\x1aE\xdf\xa3-fake-webm-bytes"
+    files = {"file": ("clip.webm", payload, "video/webm;codecs=vp9")}
+    up = client.post(
+        f"{API}/tickets/{tenant.ta['id']}/attachments", headers=tenant.h_a, files=files
+    )
+    assert up.status_code == 201, up.text
+    att_id = up.json()["id"]
+    # the object went to the (fake) S3 bucket, not local disk
+    assert any(bucket == "test-bucket" for (bucket, _key) in fake.store)
+
+    # owner streams it back through the API -> 200 + exact bytes
+    r = client.get(f"{API}/attachments/{att_id}", headers=tenant.h_a)
+    assert r.status_code == 200
+    assert r.content == payload
+
+    # another org's client cannot fetch it -> 404 (isolation holds with the S3 backend)
+    r2 = client.get(f"{API}/attachments/{att_id}", headers=tenant.h_b)
+    assert r2.status_code == 404
 
 
 def test_team_create_ticket_requires_org(client: TestClient, tenant: SimpleNamespace) -> None:

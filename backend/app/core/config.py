@@ -1,5 +1,8 @@
 """
 Change log:
+[#002] 2026-06-22 — Sumeet — Added pluggable storage settings (STORAGE_BACKEND local|s3 +
+        S3_* for the Backblaze B2 S3-compatible API), with a validator that requires the S3
+        vars when STORAGE_BACKEND=s3. local stays the default so dev needs no credentials.
 [#001] 2026-06-22 — Sumeet — Set the API base path to `/api` (spec §4) and added
         attachment-upload settings (storage dir, max size, allowed content types).
 """
@@ -116,6 +119,36 @@ class Settings(BaseSettings):
         "video/webm",
         "video/mp4",
     ]
+
+    # [#002] --by Sumeet (2026-06-22) — pluggable attachment storage.
+    # local  -> filesystem at UPLOADS_DIR (dev default; no credentials needed).
+    # s3     -> S3-compatible object storage (Backblaze B2 in prod) via the S3_* vars below.
+    STORAGE_BACKEND: Literal["local", "s3"] = "local"
+    S3_ENDPOINT_URL: str | None = None
+    S3_REGION: str | None = None
+    S3_ACCESS_KEY_ID: str | None = None
+    S3_SECRET_ACCESS_KEY: str | None = None
+    S3_BUCKET: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_storage(self) -> Self:
+        # Fail fast on a prod misconfig: STORAGE_BACKEND=s3 needs the S3 connection vars.
+        if self.STORAGE_BACKEND == "s3":
+            missing = [
+                name
+                for name in (
+                    "S3_ENDPOINT_URL",
+                    "S3_ACCESS_KEY_ID",
+                    "S3_SECRET_ACCESS_KEY",
+                    "S3_BUCKET",
+                )
+                if not getattr(self, name)
+            ]
+            if missing:
+                raise ValueError(
+                    "STORAGE_BACKEND=s3 requires: " + ", ".join(missing)
+                )
+        return self
 
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
         if value == "changethis":

@@ -109,6 +109,70 @@ blocker was hit, so per the prompt's decision rule we stayed on the recommended 
 - [x] UI matches the mockup theme/layout. _(screenshots reviewed: dashboard, report, drawer)_
 - [x] README.md and PROGRESS.md complete.
 
+## Deployment prep (2026-06-22): pluggable storage + Render migrate/seed
+
+### Task 1 — Backblaze B2 (S3-compatible) storage backend  ✅ implemented
+Uploads/downloads now go through a pluggable storage layer selected by `STORAGE_BACKEND`
+(`local` | `s3`), so the same code runs on local disk in dev and Backblaze B2 in prod.
+
+- **New `backend/app/core/storage.py`** — a small `StorageBackend` interface
+  (`save(key,data,content_type) -> key`, `open_stream(key)`, `exists(key)`, `delete(key)`)
+  with two impls:
+  - `LocalStorage(base_dir=UPLOADS_DIR)` — filesystem (the dev default; unchanged behavior).
+  - `S3Storage(client, bucket)` — S3-compatible via **boto3** (B2). The boto3 client is built
+    in an isolated `make_s3_client()` / `_get_s3_client()` from the `S3_*` settings, so tests
+    can mock it.
+  - `get_storage()` returns the backend per `settings.STORAGE_BACKEND`.
+- **`config.py`** — added `STORAGE_BACKEND` (default `local`), `S3_ENDPOINT_URL`, `S3_REGION`,
+  `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET`, plus a validator that **fails fast**
+  if `STORAGE_BACKEND=s3` without the required S3 vars. `local` stays the default → `docker
+  compose up` works with **no B2 credentials**.
+- **`attachments.py`** — upload streams the validated bytes to `get_storage().save(...)`;
+  download streams them back. Type/size limits and tenant scoping are unchanged.
+- **`boto3>=1.34,<2`** added to `backend/pyproject.toml` and `uv.lock` (boto3 1.43.34).
+
+**File-serving choice — proxy through the authenticated endpoint (NOT presigned URLs).**
+The download endpoint does `scoped_ticket_or_404(...)` FIRST, then `StreamingResponse`s the
+bytes from the storage backend. **Why proxy, not presigned:** the whole guarantee is that a
+client can never read another org's attachment, and that check lives in our API. A presigned
+URL hands out direct, time-boxed access to the object itself — once minted it bypasses our
+scope check, so a leaked/forwarded link (or one issued before a scope changes) could expose a
+file cross-org for its TTL. Proxying keeps every byte behind auth + the tenant scope, which is
+worth the extra API egress at our file sizes (≤ 50 MB) and scale. (If egress ever matters, the
+clean upgrade is short-lived, per-object presigned URLs minted *after* the scope check — but
+that weakens the isolation boundary, so we keep proxying for now.)
+
+- **Tests (mock boto3 — no real B2 needed):** `tests/core/test_storage.py` (LocalStorage
+  round-trip; `S3Storage` round-trip against a `FakeS3Client`; `get_storage()` selection) and
+  `tests/api/routes/test_tickets.py::test_attachment_via_s3_backend` (upload+stream through the
+  S3 backend with a mocked client, and **cross-org fetch still → 404**). The fake client lives
+  in `tests/utils/fake_s3.py`. All existing attachment + tenant-isolation tests still pass.
+
+### Task 2 — migrations + seed on deploy (Render)  ✅ implemented
+Locally, Compose runs migrate+seed via the dedicated `prestart` service. Render runs only the
+container's start command, so a fresh Neon DB would never get migrated/seeded. Fix:
+
+- **New `backend/scripts/start.sh`** = `bash scripts/prestart.sh` (wait-for-db →
+  `alembic upgrade head` → `initial_data` → idempotent `python -m app.seed`) then
+  `exec fastapi run --workers 4 app/main.py`.
+- **Render → Settings → Start Command:**
+
+  ```
+  bash scripts/start.sh
+  ```
+
+  (Working dir is `/app/backend`, matching the Dockerfile.) The seed is idempotent
+  (upsert-by-email) so it's safe on **every** deploy. The local Compose flow is untouched —
+  the `prestart` service + the override's backend command still handle it; `start.sh` is only
+  used where the container itself must migrate/seed.
+  Alternative if you're on a plan with a Pre-Deploy Command: set Pre-Deploy =
+  `bash scripts/prestart.sh` and leave the default start command.
+
+**Verification:** `make test` → **73 passed** (storage + attachment + all 10 tenant-isolation
+cases). Local `STORAGE_BACKEND=local` end-to-end: created a ticket, uploaded a PNG, streamed
+it back → HTTP 200, exact bytes, file present on the uploads volume; `docker compose up` still
+works with no B2 credentials.
+
 ## Seed baseline (Carnera) — demo data removed (2026-06-22)
 
 All placeholder demo data (Pennrose/MQOL/Northwind orgs, their demo users, and every sample
