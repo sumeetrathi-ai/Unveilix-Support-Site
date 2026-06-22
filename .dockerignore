@@ -1,0 +1,29 @@
+# Change log:
+# [#001] 2026-06-22 — Sumeet — File created. The compose build context is the repo root, so
+#         this root .dockerignore is what actually applies (frontend/.dockerignore does not).
+#         Keeps local dev artifacts (node_modules, venvs, caches) out of the image context so
+#         the Bun frontend build and the uv backend build use their own clean installs.
+
+# Node / frontend
+**/node_modules
+frontend/dist
+frontend/blob-report
+frontend/test-results
+frontend/playwright-report
+
+# Python / backend
+**/__pycache__
+**/*.pyc
+backend/.venv
+backend/htmlcov
+backend/.mypy_cache
+backend/.pytest_cache
+.coverage
+
+# Tooling / local
+.copier-venv
+.git
+.copier
+docs
+*.log
+.DS_Store

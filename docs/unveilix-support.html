@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unveilix Support — Concept</title>
+<style>
+  /* ---------- Design tokens (derived from unveilix brand: deep navy #0A0F1F) ---------- */
+  :root{
+    --bg:#0A0F1F;            /* brand base */
+    --bg-2:#0E1428;          /* raised surface */
+    --bg-3:#141B33;          /* card */
+    --line:#1F2944;          /* hairline */
+    --line-soft:#192038;
+    --ink:#EAF0FF;           /* primary text */
+    --ink-2:#9AA7C7;         /* secondary text */
+    --ink-3:#5E6B8C;         /* muted */
+    --accent:#5B8CFF;        /* electric blue, from the "agents thinking" energy */
+    --accent-2:#22D3A7;      /* signal teal for success/deployed */
+    --violet:#9C7BFF;        /* secondary accent */
+    --amber:#F4B740;
+    --rose:#FF6B81;
+    --radius:14px;
+    --radius-sm:9px;
+    --shadow:0 18px 50px -20px rgba(0,0,0,.7);
+    --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font);
+    background:
+      radial-gradient(900px 500px at 80% -10%, rgba(91,140,255,.10), transparent 60%),
+      radial-gradient(700px 500px at 0% 0%, rgba(156,123,255,.08), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,textarea,select{font-family:inherit}
+  ::selection{background:rgba(91,140,255,.35)}
+
+  /* ---------- App shell ---------- */
+  .shell{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  .sidebar{
+    background:linear-gradient(180deg,var(--bg-2),var(--bg));
+    border-right:1px solid var(--line);
+    padding:20px 16px;
+    display:flex;flex-direction:column;gap:6px;
+    position:sticky;top:0;height:100vh;
+  }
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 18px}
+  .logo{
+    width:30px;height:30px;border-radius:8px;
+    background:conic-gradient(from 140deg,var(--accent),var(--violet),var(--accent-2),var(--accent));
+    display:grid;place-items:center;position:relative;
+    box-shadow:0 0 18px rgba(91,140,255,.5);
+  }
+  .logo::after{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--bg)}
+  .logo i{position:relative;z-index:1;width:7px;height:7px;border-radius:50%;background:var(--ink)}
+  .brand b{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .brand span{display:block;font-size:10.5px;color:var(--ink-3);letter-spacing:.5px;text-transform:uppercase;font-weight:600}
+
+  .nav-label{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;padding:14px 10px 6px}
+  .nav-item{
+    display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;
+    color:var(--ink-2);font-size:13.5px;font-weight:500;transition:.15s;text-align:left;width:100%;
+  }
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;opacity:.85}
+  .nav-item:hover{background:var(--bg-3);color:var(--ink)}
+  .nav-item.active{background:linear-gradient(90deg,rgba(91,140,255,.18),rgba(91,140,255,.03));color:var(--ink);box-shadow:inset 2px 0 0 var(--accent)}
+  .nav-item .count{margin-left:auto;font-size:11px;background:var(--bg-3);padding:1px 7px;border-radius:20px;color:var(--ink-2);font-weight:600}
+  .nav-item.active .count{background:rgba(91,140,255,.25);color:#cfe0ff}
+
+  .side-foot{margin-top:auto;border-top:1px solid var(--line-soft);padding-top:14px}
+  .who{display:flex;align-items:center;gap:10px;padding:6px 8px}
+  .av{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--violet),var(--accent));display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff}
+  .who small{display:block;color:var(--ink-3);font-size:11px}
+  .who b{font-size:12.5px;font-weight:600}
+
+  /* role switch */
+  .role-toggle{display:flex;background:var(--bg-3);border:1px solid var(--line);border-radius:10px;padding:3px;margin:0 0 4px}
+  .role-toggle button{flex:1;font-size:11.5px;font-weight:600;padding:7px 6px;border-radius:7px;color:var(--ink-3)}
+  .role-toggle button.on{background:var(--accent);color:#fff;box-shadow:0 4px 12px -4px rgba(91,140,255,.7)}
+
+  /* ---------- Main ---------- */
+  .main{padding:0 34px 60px;max-width:1320px}
+  .topbar{
+    display:flex;align-items:center;gap:16px;padding:22px 0 18px;position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg,var(--bg) 70%,transparent);
+  }
+  .topbar h1{font-size:20px;font-weight:700;letter-spacing:-.4px}
+  .topbar p{font-size:13px;color:var(--ink-2);margin-top:2px}
+  .search{
+    margin-left:auto;display:flex;align-items:center;gap:9px;background:var(--bg-3);
+    border:1px solid var(--line);border-radius:10px;padding:9px 13px;width:300px;color:var(--ink-3);font-size:13px;
+  }
+  .search input{background:none;border:none;outline:none;color:var(--ink);font-size:13px;width:100%}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;
+    padding:10px 16px;border-radius:10px;transition:.15s;white-space:nowrap;
+  }
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 8px 20px -8px rgba(91,140,255,.8)}
+  .btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .btn-ghost{background:var(--bg-3);border:1px solid var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--accent)}
+
+  /* views */
+  .view{display:none;animation:rise .35s ease both}
+  .view.show{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ---------- KPI cards ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  .kpi{background:var(--bg-3);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:.6}
+  .kpi.teal::before{background:var(--accent-2)} .kpi.amber::before{background:var(--amber)} .kpi.violet::before{background:var(--violet)}
+  .kpi label{font-size:11.5px;color:var(--ink-2);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .kpi .big{font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:6px}
+  .kpi .delta{font-size:11.5px;color:var(--accent-2);font-weight:600;margin-top:4px}
+  .kpi .delta.down{color:var(--rose)}
+
+  /* ---------- Toolbar / filters ---------- */
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .filter{
+    display:flex;align-items:center;gap:7px;background:var(--bg-3);border:1px solid var(--line);
+    border-radius:9px;padding:8px 12px;font-size:12.5px;color:var(--ink-2);font-weight:500;
+  }
+  .filter select{background:none;border:none;color:var(--ink);outline:none;font-weight:600;font-size:12.5px}
+  .filter svg{width:14px;height:14px;opacity:.7}
+  .seg{display:flex;background:var(--bg-3);border:1px solid var(--line);border-radius:9px;padding:3px;margin-left:auto}
+  .seg button{font-size:12px;font-weight:600;padding:6px 13px;border-radius:6px;color:var(--ink-3)}
+  .seg button.on{background:var(--accent);color:#fff}
+
+  /* ---------- Kanban ---------- */
+  .board{display:grid;grid-template-columns:repeat(6,minmax(216px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px}
+  .col{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:12px;padding:12px;min-height:200px}
+  .col-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12.5px;font-weight:700}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .col-head .num{margin-left:auto;color:var(--ink-3);font-weight:600;font-size:12px}
+  .card{
+    background:var(--bg-3);border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px;
+    transition:.15s;cursor:pointer;
+  }
+  .card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow)}
+  .card .id{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .card h4{font-size:13px;font-weight:600;margin:5px 0 9px;line-height:1.35}
+  .card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .chip{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.2px}
+  .pri-p1{background:rgba(255,107,129,.16);color:#ff97a6} .pri-p2{background:rgba(244,183,64,.16);color:#ffd27a}
+  .pri-p3{background:rgba(91,140,255,.16);color:#9fbcff} .pri-p4{background:rgba(94,107,140,.18);color:#a9b4cf}
+  .client-tag{font-size:10.5px;color:var(--ink-2);background:var(--bg-2);border:1px solid var(--line);padding:2px 8px;border-radius:20px;font-weight:600}
+  .card-foot{display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:10px;border-top:1px solid var(--line-soft)}
+  .mini-av{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff}
+  .has-media{margin-left:auto;display:flex;gap:9px;color:var(--ink-3);font-size:11px;align-items:center}
+  .has-media span{display:flex;align-items:center;gap:3px}
+  .has-media svg{width:13px;height:13px}
+
+  /* ---------- Table (list view) ---------- */
+  .tablewrap{background:var(--bg-3);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-3);text-align:left;padding:13px 16px;font-weight:700;border-bottom:1px solid var(--line)}
+  td{padding:13px 16px;font-size:13px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tbody tr{transition:.12s;cursor:pointer}
+  tbody tr:hover{background:var(--bg-2)}
+  .status-pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--bg-2);border:1px solid var(--line)}
+
+  /* ---------- Client report flow ---------- */
+  .report-wrap{max-width:680px;margin:0 auto}
+  .report-card{background:var(--bg-3);border:1px solid var(--line);border-radius:18px;padding:30px;box-shadow:var(--shadow)}
+  .report-card h2{font-size:20px;font-weight:700;letter-spacing:-.3px}
+  .report-card .sub{color:var(--ink-2);font-size:13.5px;margin:6px 0 24px}
+  .field{margin-bottom:20px}
+  .field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:8px}
+  .field label .opt{color:var(--ink-3);font-weight:500}
+  .field input[type=text],.field textarea,.field select{
+    width:100%;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;color:var(--ink);font-size:13.5px;outline:none;transition:.15s;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,140,255,.15)}
+  .field textarea{resize:vertical;min-height:90px}
+  .sev-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sev{border:1px solid var(--line);background:var(--bg-2);border-radius:11px;padding:12px 14px;text-align:left;transition:.15s}
+  .sev:hover{border-color:var(--accent)}
+  .sev.sel{border-color:var(--accent);background:rgba(91,140,255,.1)}
+  .sev b{font-size:13px;display:flex;align-items:center;gap:8px}
+  .sev small{color:var(--ink-3);font-size:11.5px;display:block;margin-top:3px}
+  .sev .pin{width:9px;height:9px;border-radius:50%}
+
+  /* capture zone */
+  .capture{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .drop{
+    border:1.5px dashed var(--line);border-radius:12px;padding:20px;text-align:center;transition:.15s;background:var(--bg-2);
+  }
+  .drop:hover{border-color:var(--accent);background:rgba(91,140,255,.05)}
+  .drop svg{width:26px;height:26px;color:var(--accent);margin-bottom:8px}
+  .drop b{display:block;font-size:13px;font-weight:600}
+  .drop small{color:var(--ink-3);font-size:11.5px}
+  .rec-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;font-weight:600;font-size:13px;color:var(--ink)}
+  .rec-dot{width:11px;height:11px;border-radius:50%;background:var(--rose);box-shadow:0 0 0 0 rgba(255,107,129,.6)}
+  .recording .rec-dot{animation:pulse 1.3s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,107,129,.6)}70%{box-shadow:0 0 0 12px rgba(255,107,129,0)}100%{box-shadow:0 0 0 0 rgba(255,107,129,0)}}
+  .auto-note{display:flex;gap:9px;align-items:flex-start;background:var(--bg-2);border:1px solid var(--line-soft);border-radius:11px;padding:13px 14px;margin:20px 0;font-size:12px;color:var(--ink-2)}
+  .auto-note svg{width:16px;height:16px;color:var(--accent-2);flex-shrink:0;margin-top:1px}
+  .auto-note code{font-family:var(--mono);font-size:11px;color:var(--ink)}
+  .submit-row{display:flex;gap:12px;margin-top:6px}
+  .attach-preview{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .thumb{width:54px;height:54px;border-radius:8px;background:linear-gradient(135deg,var(--bg-2),var(--line));border:1px solid var(--line);display:grid;place-items:center;font-size:10px;color:var(--ink-3);position:relative}
+  .thumb.vid{background:linear-gradient(135deg,rgba(255,107,129,.2),var(--bg-2))}
+
+  /* client "my tickets" */
+  .my-list .row{display:flex;align-items:center;gap:14px;background:var(--bg-3);border:1px solid var(--line);border-radius:12px;padding:15px 18px;margin-bottom:11px;transition:.15s;cursor:pointer}
+  .my-list .row:hover{border-color:var(--accent);transform:translateX(2px)}
+  .my-list .row h4{font-size:14px;font-weight:600}
+  .my-list .row .id{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-bottom:3px}
+  .my-list .progress{margin-left:auto;text-align:right}
+
+  /* ---------- Detail drawer ---------- */
+  .drawer-bg{position:fixed;inset:0;background:rgba(5,8,18,.6);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:.25s;z-index:50}
+  .drawer-bg.open{opacity:1;pointer-events:auto}
+  .drawer{
+    position:fixed;top:0;right:0;height:100vh;width:520px;max-width:94vw;background:var(--bg-2);
+    border-left:1px solid var(--line);transform:translateX(100%);transition:.3s cubic-bezier(.4,0,.2,1);z-index:60;
+    overflow-y:auto;box-shadow:-30px 0 60px -20px rgba(0,0,0,.7);
+  }
+  .drawer.open{transform:none}
+  .drawer-head{padding:22px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg-2);z-index:2}
+  .drawer-head .id{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .drawer-head h3{font-size:17px;font-weight:700;margin:6px 0 12px;line-height:1.35}
+  .close-x{position:absolute;top:20px;right:20px;width:30px;height:30px;border-radius:8px;background:var(--bg-3);display:grid;place-items:center;color:var(--ink-2)}
+  .close-x:hover{color:var(--ink)}
+  .drawer-body{padding:22px 24px}
+  .d-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+  .d-field label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-3);font-weight:700}
+  .d-field select,.d-field .static{width:100%;margin-top:6px;background:var(--bg-3);border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:12.5px;color:var(--ink);outline:none;font-weight:600}
+  .d-sec-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-3);margin:6px 0 12px}
+  .media-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px}
+  .media{border-radius:11px;border:1px solid var(--line);overflow:hidden;background:var(--bg-3)}
+  .media .ph{height:108px;display:grid;place-items:center;color:var(--ink-3);font-size:12px;position:relative;background:repeating-linear-gradient(45deg,var(--bg-3),var(--bg-3) 10px,var(--bg-2) 10px,var(--bg-2) 20px)}
+  .media.video .ph{background:linear-gradient(135deg,rgba(255,107,129,.18),var(--bg-3))}
+  .play{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center;backdrop-filter:blur(4px)}
+  .media small{display:block;padding:8px 11px;font-size:11px;color:var(--ink-2);border-top:1px solid var(--line-soft)}
+  .env-box{background:var(--bg-3);border:1px solid var(--line);border-radius:11px;padding:14px;margin-bottom:22px}
+  .env-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--line-soft)}
+  .env-row:last-child{border-bottom:none}
+  .env-row span{color:var(--ink-3)} .env-row b{font-weight:600;font-family:var(--mono);font-size:11.5px}
+  .timeline{position:relative;padding-left:22px}
+  .timeline::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:var(--line)}
+  .tl{position:relative;margin-bottom:16px;font-size:12.5px}
+  .tl::before{content:"";position:absolute;left:-21px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--bg-2)}
+  .tl b{font-weight:600} .tl span{color:var(--ink-3);font-size:11px;display:block;margin-top:1px}
+  .comment-box{margin-top:18px;display:flex;gap:10px}
+  .comment-box textarea{flex:1;background:var(--bg-3);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--ink);font-size:12.5px;outline:none;resize:none;min-height:42px}
+
+  /* toast */
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--bg-3);border:1px solid var(--accent-2);color:var(--ink);padding:13px 20px;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);transition:.3s;z-index:80}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast svg{width:18px;height:18px;color:var(--accent-2)}
+
+  .hint{font-size:11px;color:var(--ink-3);text-align:center;margin-top:30px}
+
+  @media(max-width:980px){
+    .shell{grid-template-columns:1fr}
+    .sidebar{display:none}
+    .main{padding:0 18px 50px}
+    .kpis{grid-template-columns:1fr 1fr}
+    .board{grid-template-columns:repeat(6,236px)}
+    .d-grid,.capture,.sev-grid,.media-row{grid-template-columns:1fr}
+  }
+</style>
+<style>
+  /* ---------- Landing / role chooser ---------- */
+  .gate{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:24px;
+    background:radial-gradient(900px 500px at 80% -10%,rgba(91,140,255,.14),transparent 60%),radial-gradient(700px 500px at 0% 0%,rgba(156,123,255,.10),transparent 55%),var(--bg);
+    transition:opacity .4s,visibility .4s}
+  .gate.hide{opacity:0;visibility:hidden}
+  .gate-inner{max-width:760px;width:100%;text-align:center}
+  .gate .logo{width:46px;height:46px;margin:0 auto 18px}
+  .gate h1{font-size:30px;font-weight:800;letter-spacing:-.6px}
+  .gate p{color:var(--ink-2);font-size:14.5px;margin:10px auto 34px;max-width:480px}
+  .gate-cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .gate-card{background:var(--bg-3);border:1px solid var(--line);border-radius:18px;padding:28px 24px;text-align:left;transition:.18s;cursor:pointer}
+  .gate-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:var(--shadow)}
+  .gate-card .ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;margin-bottom:16px}
+  .gate-card .ic svg{width:23px;height:23px;color:#fff}
+  .gate-card h3{font-size:17px;font-weight:700}
+  .gate-card p{font-size:12.5px;color:var(--ink-2);margin:7px 0 0;max-width:none}
+  .gate-card .tag{display:inline-block;margin-top:16px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+  .gate-card .arrow{float:right;color:var(--ink-3);transition:.18s}
+  .gate-card:hover .arrow{color:var(--accent);transform:translateX(3px)}
+  @media(max-width:640px){.gate-cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ===== LANDING / ROLE CHOOSER ===== -->
+<div class="gate" id="gate">
+  <div class="gate-inner">
+    <div class="logo"><i></i></div>
+    <h1>Unveilix Support</h1>
+    <p>Two ways in. Each company sees only its own bugs; the Unveilix product team sees every company.</p>
+    <div class="gate-cards">
+      <div class="gate-card" onclick="enter('client')">
+        <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <div class="ic" style="background:linear-gradient(135deg,#5B8CFF,#9C7BFF)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.3 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.3a2 2 0 0 0-3.4 0Z"/></svg></div>
+        <h3>I'm a client</h3>
+        <p>Report a bug from your Unveilix instance and track it. You'll only ever see your own organization's tickets.</p>
+        <span class="tag" style="background:rgba(91,140,255,.16);color:#9fbcff">Demo as · Will Flynn, Pennrose</span>
+      </div>
+      <div class="gate-card" onclick="enter('team')">
+        <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <div class="ic" style="background:linear-gradient(135deg,#22D3A7,#5B8CFF)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></div>
+        <h3>I'm on the Unveilix team</h3>
+        <p>Triage bugs across every client. Filter by company, status, priority, and assignee on one board.</p>
+        <span class="tag" style="background:rgba(34,211,167,.16);color:#6fe7c7">Demo as · Sumeet Rathi, Product</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo"><i></i></div>
+      <div><b>Unveilix</b><span>Support</span></div>
+    </div>
+
+    <div class="role-toggle">
+      <button id="roleClient" class="on" onclick="setRole('client')">Client</button>
+      <button id="roleTeam" onclick="setRole('team')">Unveilix team</button>
+    </div>
+
+    <!-- CLIENT NAV -->
+    <div id="navClient">
+      <div class="nav-label">Support</div>
+      <button class="nav-item active" onclick="go('report',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.3 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.3a2 2 0 0 0-3.4 0Z"/></svg>
+        Report a bug
+      </button>
+      <button class="nav-item" onclick="go('mytickets',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
+        My tickets <span class="count">5</span>
+      </button>
+    </div>
+
+    <!-- TEAM NAV -->
+    <div id="navTeam" style="display:none">
+      <div class="nav-label">Triage</div>
+      <button class="nav-item active" onclick="go('dashboard',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" onclick="go('board',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h6v14H3zM10 5h6v9h-6zM17 5h4v6h-4z"/></svg>
+        Board <span class="count">23</span>
+      </button>
+      <button class="nav-item" onclick="go('list',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        All tickets
+      </button>
+      <div class="nav-label">Manage</div>
+      <button class="nav-item" onclick="go('clients',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clients <span class="count">8</span>
+      </button>
+      <button class="nav-item" onclick="go('kb',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z"/></svg>
+        Knowledge base
+      </button>
+    </div>
+
+    <div class="side-foot">
+      <div class="who" id="whoBox">
+        <div class="av" id="whoAv">SR</div>
+        <div><b id="whoName">Sumeet Rathi</b><small id="whoRole">Pennrose · Admin</small></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <main class="main">
+    <!-- ---------- CLIENT: REPORT ---------- -->
+    <section id="view-report" class="view show">
+      <div class="topbar"><div><h1>Report a bug</h1><p>Tell us what went wrong in Unveilix. We'll route it to the right engineer.</p></div></div>
+      <div class="report-wrap">
+        <div class="report-card">
+          <div class="field">
+            <label>What happened?</label>
+            <input type="text" placeholder="e.g. Chart didn't render after I asked for revenue by region">
+          </div>
+          <div class="field">
+            <label>Steps & details <span class="opt">— the more, the faster we fix it</span></label>
+            <textarea placeholder="What you were doing, what you expected, what you saw instead…"></textarea>
+          </div>
+          <div class="field">
+            <label>Where in Unveilix?</label>
+            <select>
+              <option>Conversational query</option>
+              <option>Dashboard / charts</option>
+              <option>Datasource connection</option>
+              <option>Agent reasoning view</option>
+              <option>User & role settings (RBAC)</option>
+              <option>Audit log</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>How much is this blocking you?</label>
+            <div class="sev-grid">
+              <button class="sev sel" onclick="pickSev(this)"><b><span class="pin" style="background:var(--rose)"></span>Blocks my work</b><small>Can't use a core feature</small></button>
+              <button class="sev" onclick="pickSev(this)"><b><span class="pin" style="background:var(--amber)"></span>Major problem</b><small>Workaround exists but painful</small></button>
+              <button class="sev" onclick="pickSev(this)"><b><span class="pin" style="background:var(--accent)"></span>Minor issue</b><small>Annoying, not urgent</small></button>
+              <button class="sev" onclick="pickSev(this)"><b><span class="pin" style="background:var(--ink-3)"></span>Suggestion</b><small>Idea or polish</small></button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Show us (optional but powerful)</label>
+            <div class="capture">
+              <button class="drop recordZone" id="recZone" onclick="toggleRec()">
+                <span id="recIdle">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14M5 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/></svg>
+                  <b>Record screen</b><small>Capture the bug as it happens</small>
+                </span>
+                <span id="recLive" style="display:none">
+                  <span class="rec-btn"><span class="rec-dot"></span><b>Recording… click to stop</b></span>
+                  <small id="recTime" style="font-family:var(--mono)">00:00</small>
+                </span>
+              </button>
+              <button class="drop" onclick="fakeUpload()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                <b>Upload screenshot</b><small>Drag & drop or browse · annotate after</small>
+              </button>
+            </div>
+            <div class="attach-preview" id="attachPreview"></div>
+          </div>
+
+          <div class="auto-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+            <div>We'll automatically attach your diagnostics so you don't have to — <code>browser</code>, <code>OS</code>, the <code>Unveilix module</code>, your <code>datasource type</code>, and the last query ID. Raw query text and result values are never captured.</div>
+          </div>
+
+          <div class="submit-row">
+            <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitTicket()">Submit bug report</button>
+            <button class="btn btn-ghost" onclick="go('mytickets',document.querySelector('#navClient .nav-item:nth-child(3)'))">My tickets</button>
+          </div>
+        </div>
+        <p class="hint">Tickets stay private to your organization. Only the Unveilix team and your admins can see them.</p>
+      </div>
+    </section>
+
+    <!-- ---------- CLIENT: MY TICKETS ---------- -->
+    <section id="view-mytickets" class="view">
+      <div class="topbar"><div><h1>My tickets</h1><p>Everything <b id="myOrgName">your organization</b> has reported, and where it stands. You can't see other companies' tickets.</p></div>
+        <button class="btn btn-primary" onclick="go('report',document.querySelector('#navClient .nav-item'))">+ New bug</button>
+      </div>
+      <div class="my-list" id="myList"></div>
+    </section>
+
+    <!-- ---------- TEAM: DASHBOARD ---------- -->
+    <section id="view-dashboard" class="view">
+      <div class="topbar"><div><h1>Triage dashboard</h1><p>Everything across all client instances, at a glance.</p></div>
+        <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Search tickets, clients, IDs…"></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><label>Open tickets</label><div class="big">23</div><div class="delta down">▲ 4 this week</div></div>
+        <div class="kpi amber"><label>Breaching SLA</label><div class="big">3</div><div class="delta down">Needs attention</div></div>
+        <div class="kpi teal"><label>Deployed (7d)</label><div class="big">11</div><div class="delta">▲ 38% vs last week</div></div>
+        <div class="kpi violet"><label>Median resolution</label><div class="big">2.4d</div><div class="delta">▼ 0.6d faster</div></div>
+      </div>
+      <div class="toolbar">
+        <div class="filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Client<select><option>All clients</option><option>Pennrose</option><option>MQOL</option><option>Northwind Health</option></select></div>
+        <div class="filter">Status<select><option>All</option><option>New</option><option>In Development</option><option>In Testing</option></select></div>
+        <div class="filter">Assignee<select><option>Anyone</option><option>Adit Tripathi</option><option>Anubhav Shukla</option><option>Nick AJ</option></select></div>
+      </div>
+      <div id="dashBoard"></div>
+    </section>
+
+    <!-- ---------- TEAM: BOARD ---------- -->
+    <section id="view-board" class="view">
+      <div class="topbar"><div><h1>Board</h1><p>Drag-style triage across the full lifecycle. Click any card for detail.</p></div></div>
+      <div class="toolbar">
+        <div class="filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Client<select><option>All clients</option><option>Pennrose</option><option>MQOL</option><option>Northwind Health</option></select></div>
+        <div class="filter">Priority<select><option>All</option><option>P1 — Critical</option><option>P2 — High</option><option>P3 — Medium</option></select></div>
+        <div class="filter">Assignee<select><option>Anyone</option><option>Adit Tripathi</option><option>Anubhav Shukla</option><option>Nick AJ</option></select></div>
+        <div class="filter">Module<select><option>All modules</option><option>Conversational query</option><option>Charts</option><option>Datasource</option></select></div>
+        <div class="seg"><button class="on">Board</button><button onclick="go('list',document.querySelector('#navTeam .nav-item:nth-child(4)'))">List</button></div>
+      </div>
+      <div class="board" id="kanban"></div>
+    </section>
+
+    <!-- ---------- TEAM: LIST ---------- -->
+    <section id="view-list" class="view">
+      <div class="topbar"><div><h1>All tickets</h1><p>Sortable, filterable record of every reported bug.</p></div></div>
+      <div class="toolbar">
+        <div class="filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Client<select><option>All clients</option><option>Pennrose</option><option>MQOL</option></select></div>
+        <div class="filter">Status<select><option>All</option><option>New</option><option>Deferred</option><option>In Development</option><option>In Testing</option><option>Deployed</option><option>Closed</option></select></div>
+        <div class="filter">Priority<select><option>All</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+        <div class="seg"><button onclick="go('board',document.querySelector('#navTeam .nav-item:nth-child(3)'))">Board</button><button class="on">List</button></div>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>ID</th><th>Summary</th><th>Client</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Age</th></tr></thead>
+          <tbody id="listBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- TEAM: CLIENTS ---------- -->
+    <section id="view-clients" class="view">
+      <div class="topbar"><div><h1>Clients</h1><p>Onboard organizations and see their bug load.</p></div>
+        <button class="btn btn-primary">+ Onboard client</button>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Organization</th><th>Plan</th><th>Open</th><th>Deployed (30d)</th><th>SLA</th><th>Primary contact</th></tr></thead>
+          <tbody id="clientBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- TEAM: KB (placeholder) ---------- -->
+    <section id="view-kb" class="view">
+      <div class="topbar"><div><h1>Knowledge base</h1><p>Deflect repeat tickets with self-serve answers. (Phase 2)</p></div></div>
+      <div class="report-card" style="max-width:640px">
+        <h2 style="font-size:16px">Coming in phase 2</h2>
+        <p class="sub" style="margin-bottom:0">When a client starts typing a bug, we'll surface matching known issues and fixes here first — turning resolved tickets into searchable articles, so the same bug never gets reported twice.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== DETAIL DRAWER ===== -->
+<div class="drawer-bg" id="drawerBg" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <button class="close-x" onclick="closeDrawer()">✕</button>
+    <div class="id" id="dId">UVX-1042</div>
+    <h3 id="dTitle">Chart fails to render after natural-language query on large result set</h3>
+    <div class="card-meta">
+      <span class="chip pri-p1" id="dPri">P1 · Critical</span>
+      <span class="client-tag" id="dClient">Pennrose</span>
+    </div>
+  </div>
+  <div class="drawer-body">
+    <div class="d-grid">
+      <div class="d-field"><label>Status</label>
+        <select><option>New</option><option selected>In Development</option><option>In Testing</option><option>Deployed</option><option>Deferred</option><option>Closed</option></select>
+      </div>
+      <div class="d-field"><label>Assigned to</label>
+        <select><option>Unassigned</option><option selected>Adit Tripathi</option><option>Anubhav Shukla</option><option>Nick AJ</option></select>
+      </div>
+      <div class="d-field"><label>Module</label><div class="static">Dashboard / charts</div></div>
+      <div class="d-field"><label>SLA</label><div class="static" style="color:var(--amber)">6h remaining</div></div>
+    </div>
+
+    <div class="d-sec-title">Attached by reporter</div>
+    <div class="media-row">
+      <div class="media video"><div class="ph"><div class="play"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div><small>screen-recording.webm · 0:42</small></div>
+      <div class="media"><div class="ph">Screenshot</div><small>chart-error.png · annotated</small></div>
+    </div>
+
+    <div class="d-sec-title">Auto-captured diagnostics</div>
+    <div class="env-box">
+      <div class="env-row"><span>Browser</span><b>Chrome 126 / macOS 14.5</b></div>
+      <div class="env-row"><span>Unveilix build</span><b>v3.2.1-prod</b></div>
+      <div class="env-row"><span>Datasource</span><b>PostgreSQL via Trino</b></div>
+      <div class="env-row"><span>Agent run ID</span><b>run_8f3a…c21</b></div>
+      <div class="env-row"><span>Reported by</span><b>will.flynn@pennrose.com</b></div>
+    </div>
+
+    <div class="d-sec-title">Activity</div>
+    <div class="timeline">
+      <div class="tl"><b>Will Flynn</b> reported the bug with a screen recording<span>2 days ago · auto-tagged P1 from "blocks my work"</span></div>
+      <div class="tl"><b>Sumeet Rathi</b> assigned to Adit Tripathi<span>2 days ago</span></div>
+      <div class="tl"><b>Adit Tripathi</b> moved to In Development<span>1 day ago · "Reproduced — Trino timeout on >50k rows"</span></div>
+      <div class="tl"><b>Adit Tripathi</b> linked PR #214<span>4 hours ago</span></div>
+    </div>
+
+    <div class="comment-box">
+      <div class="mini-av" style="background:linear-gradient(135deg,var(--violet),var(--accent))">SR</div>
+      <textarea placeholder="Add an internal note… (clients don't see this)"></textarea>
+    </div>
+  </div>
+</aside>
+
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg><span id="toastMsg">Done</span></div>
+
+<script>
+/* ============ DATA ============ */
+const team = {
+  AT:{n:"Adit Tripathi",c:"linear-gradient(135deg,#5B8CFF,#9C7BFF)"},
+  AS:{n:"Anubhav Shukla",c:"linear-gradient(135deg,#22D3A7,#5B8CFF)"},
+  NA:{n:"Nick AJ",c:"linear-gradient(135deg,#F4B740,#FF6B81)"},
+  BM:{n:"Bhabani Mishra",c:"linear-gradient(135deg,#9C7BFF,#FF6B81)"}
+};
+const statusColor={New:"#5B8CFF",Deferred:"#5E6B8C","In Development":"#9C7BFF","In Testing":"#F4B740",Deployed:"#22D3A7",Closed:"#4a5578"};
+const priClass={P1:"pri-p1",P2:"pri-p2",P3:"pri-p3",P4:"pri-p4"};
+const priLabel={P1:"P1 · Critical",P2:"P2 · High",P3:"P3 · Medium",P4:"P4 · Low"};
+
+const tickets=[
+  {id:"UVX-1042",t:"Chart fails to render after NL query on large result set",cl:"Pennrose",pri:"P1",st:"In Development",as:"AT",mod:"Charts",age:"2d",vid:1,img:1},
+  {id:"UVX-1041",t:"Agent reasoning panel freezes mid-thinking on Safari",cl:"MQOL",pri:"P1",st:"New",as:null,mod:"Agent view",age:"4h",vid:1,img:0},
+  {id:"UVX-1039",t:"Datasource connection drops after 30 min idle (Trino)",cl:"Northwind Health",pri:"P2",st:"In Testing",as:"AS",mod:"Datasource",age:"3d",vid:0,img:1},
+  {id:"UVX-1038",t:"Viewer role can still see Admin settings link",cl:"Pennrose",pri:"P2",st:"In Development",as:"NA",mod:"RBAC",age:"3d",vid:0,img:1},
+  {id:"UVX-1035",t:"Audit log timestamp shows UTC instead of local tz",cl:"MQOL",pri:"P3",st:"New",as:null,mod:"Audit log",age:"5d",vid:0,img:1},
+  {id:"UVX-1033",t:"Pie chart legend overlaps on narrow screens",cl:"Northwind Health",pri:"P3",st:"Deferred",as:null,mod:"Charts",age:"8d",vid:0,img:1},
+  {id:"UVX-1030",t:"Export to CSV cuts off rows beyond 10k",cl:"Pennrose",pri:"P2",st:"Deployed",as:"AS",mod:"Charts",age:"6d",vid:0,img:0},
+  {id:"UVX-1028",t:"Typo in onboarding tooltip ('datsource')",cl:"MQOL",pri:"P4",st:"Deployed",as:"NA",mod:"Other",age:"7d",vid:0,img:0},
+  {id:"UVX-1025",t:"Forgot-password email lands in spam (SendGrid SPF)",cl:"Pennrose",pri:"P2",st:"Closed",as:"AT",mod:"Other",age:"11d",vid:0,img:0},
+  {id:"UVX-1022",t:"Suggestion: let users pin favorite dashboards",cl:"Northwind Health",pri:"P4",st:"Deferred",as:null,mod:"Charts",age:"14d",vid:0,img:0},
+];
+/* Current signed-in client org for the client view. Strict tenant isolation:
+   the client only ever sees tickets where cl === clientOrg. */
+const clientOrg="Pennrose";
+function orgTickets(){return tickets.filter(t=>t.cl===clientOrg);}
+const clients=[
+  {n:"Pennrose",plan:"Enterprise",open:3,dep:7,sla:"On track",ct:"will.flynn@pennrose.com"},
+  {n:"MQOL",plan:"Growth",open:3,dep:4,sla:"On track",ct:"ops@mqol.com"},
+  {n:"Northwind Health",plan:"Enterprise",open:2,dep:5,sla:"1 breaching",ct:"it@northwind.health"},
+];
+
+/* ============ RENDER ============ */
+function avatar(code){const m=team[code];return code?`<div class="mini-av" style="background:${m.c}">${code}</div>`:`<div class="mini-av" style="background:var(--line);color:var(--ink-3)">?</div>`}
+function mediaIcons(t){let s='';if(t.vid)s+=`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14M5 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/></svg></span>`;if(t.img)s+=`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></span>`;return s?`<div class="has-media">${s}</div>`:''}
+
+function card(t){
+  return `<div class="card" onclick="openDrawer('${t.id}')">
+    <div class="id">${t.id}</div><h4>${t.t}</h4>
+    <div class="card-meta"><span class="chip ${priClass[t.pri]}">${t.pri}</span><span class="client-tag">${t.cl}</span></div>
+    <div class="card-foot">${avatar(t.as)}${mediaIcons(t)}</div>
+  </div>`;
+}
+function renderKanban(target){
+  const cols=["New","Deferred","In Development","In Testing","Deployed","Closed"];
+  document.getElementById(target).innerHTML=cols.map(c=>{
+    const items=tickets.filter(t=>t.st===c);
+    return `<div class="col"><div class="col-head"><span class="dot" style="background:${statusColor[c]}"></span>${c}<span class="num">${items.length}</span></div>${items.map(card).join('')}</div>`;
+  }).join('');
+}
+function renderList(){
+  document.getElementById('listBody').innerHTML=tickets.map(t=>`<tr onclick="openDrawer('${t.id}')">
+    <td style="font-family:var(--mono);font-size:11.5px;color:var(--ink-3)">${t.id}</td>
+    <td style="font-weight:600;max-width:320px">${t.t}</td>
+    <td><span class="client-tag">${t.cl}</span></td>
+    <td><span class="chip ${priClass[t.pri]}">${t.pri}</span></td>
+    <td><span class="status-pill"><span class="dot" style="background:${statusColor[t.st]}"></span>${t.st}</span></td>
+    <td>${t.as?`<div style="display:flex;align-items:center;gap:8px">${avatar(t.as)}<span style="font-size:12px">${team[t.as].n.split(' ')[0]}</span></div>`:'<span style="color:var(--ink-3)">—</span>'}</td>
+    <td style="color:var(--ink-3)">${t.age}</td>
+  </tr>`).join('');
+}
+function renderMy(){
+  const scoped=orgTickets();
+  document.getElementById('myList').innerHTML=scoped.map(t=>`<div class="row" onclick="openDrawer('${t.id}')">
+    <div><div class="id">${t.id}</div><h4>${t.t}</h4></div>
+    <div class="progress"><span class="status-pill"><span class="dot" style="background:${statusColor[t.st]}"></span>${t.st}</span></div>
+  </div>`).join('');
+}
+function renderClients(){
+  document.getElementById('clientBody').innerHTML=clients.map(c=>`<tr>
+    <td style="font-weight:700">${c.n}</td>
+    <td><span class="client-tag">${c.plan}</span></td>
+    <td style="font-weight:600">${c.open}</td>
+    <td style="color:var(--accent-2);font-weight:600">${c.dep}</td>
+    <td style="${c.sla.includes('breach')?'color:var(--amber)':'color:var(--ink-2)'};font-weight:600">${c.sla}</td>
+    <td style="font-family:var(--mono);font-size:11.5px;color:var(--ink-2)">${c.ct}</td>
+  </tr>`).join('');
+}
+
+/* ============ NAV ============ */
+let role='client';
+function enter(r){document.getElementById('gate').classList.add('hide');setRole(r);}
+function setRole(r){
+  role=r;
+  document.getElementById('roleClient').classList.toggle('on',r==='client');
+  document.getElementById('roleTeam').classList.toggle('on',r==='team');
+  document.getElementById('navClient').style.display=r==='client'?'block':'none';
+  document.getElementById('navTeam').style.display=r==='team'?'block':'none';
+  if(r==='client'){document.getElementById('whoName').textContent="Will Flynn";document.getElementById('whoRole').textContent=clientOrg+" · Reporter";document.getElementById('whoAv').textContent="WF";
+    const c=orgTickets().length;document.querySelector('#navClient .nav-item:nth-child(3) .count').textContent=c;
+    document.getElementById('myOrgName').textContent=clientOrg;
+    go('report',document.querySelector('#navClient .nav-item'));}
+  else{document.getElementById('whoName').textContent="Sumeet Rathi";document.getElementById('whoRole').textContent="Unveilix · Product team";document.getElementById('whoAv').textContent="SR";go('dashboard',document.querySelector('#navTeam .nav-item'));}
+}
+function go(view,el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('show'));
+  document.getElementById('view-'+view).classList.add('show');
+  const navScope=role==='client'?'#navClient':'#navTeam';
+  document.querySelectorAll(navScope+' .nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+  if(view==='board')renderKanban('kanban');
+  if(view==='dashboard')renderKanban('dashBoard');
+  if(view==='list')renderList();
+  if(view==='mytickets')renderMy();
+  if(view==='clients')renderClients();
+  window.scrollTo(0,0);
+}
+
+/* ============ DRAWER ============ */
+function openDrawer(id){
+  const t=tickets.find(x=>x.id===id);
+  if(role==='client' && t && t.cl!==clientOrg){toast("That ticket belongs to another organization — access denied.");return;}
+  if(t){
+    document.getElementById('dId').textContent=t.id;
+    document.getElementById('dTitle').textContent=t.t;
+    document.getElementById('dPri').className='chip '+priClass[t.pri];
+    document.getElementById('dPri').textContent=priLabel[t.pri];
+    document.getElementById('dClient').textContent=t.cl||'Pennrose';
+  }
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerBg').classList.add('open');
+}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBg').classList.remove('open');}
+
+/* ============ REPORT FLOW ============ */
+function pickSev(el){document.querySelectorAll('.sev').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
+let recording=false,recT=0,recTimer=null;
+function toggleRec(){
+  const z=document.getElementById('recZone');recording=!recording;
+  if(recording){z.classList.add('recording');document.getElementById('recIdle').style.display='none';document.getElementById('recLive').style.display='block';recT=0;recTimer=setInterval(()=>{recT++;const m=String(Math.floor(recT/60)).padStart(2,'0'),s=String(recT%60).padStart(2,'0');document.getElementById('recTime').textContent=`${m}:${s}`;},1000);
+    toast('Screen recording started — pick a window or tab to share');
+  }else{z.classList.remove('recording');clearInterval(recTimer);document.getElementById('recIdle').style.display='block';document.getElementById('recLive').style.display='none';
+    addThumb('vid','▶ '+document.getElementById('recTime').textContent);toast('Recording attached');}
+}
+function fakeUpload(){addThumb('img','PNG');toast('Screenshot attached — click to annotate');}
+function addThumb(type,label){const p=document.getElementById('attachPreview');const d=document.createElement('div');d.className='thumb'+(type==='vid'?' vid':'');d.textContent=label;p.appendChild(d);}
+function submitTicket(){toast('Bug reported — ticket UVX-1043 created. We auto-tagged it P1 and notified the Unveilix team.');setTimeout(()=>go('mytickets',document.querySelector('#navClient .nav-item:nth-child(3)')),1400);}
+
+/* ============ TOAST ============ */
+let toastTimer;
+function toast(msg){const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3200);}
+
+/* init */
+renderMy();
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+.vscode/*
+!.vscode/extensions.json
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/.env
+.copier-venv/
+frontend/ui_smoke.mjs
+.copier/
