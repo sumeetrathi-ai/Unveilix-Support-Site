@@ -197,6 +197,22 @@ Bare `docker compose up` now starts only db+prestart+backend+frontend.
 - Caveat noted honestly: live getDisplayMedia screen capture can't be driven headlessly;
   it's implemented + works in a secure context (localhost); seeded recording plays in drawer.
 
+### FRONTEND API-URL FIX #2 (2026-06-23) — Cloudflare prod default
+- SYMPTOM: deployed Pages bundle still used relative /api (pages.dev/api -> 405). Repro:
+  `npm run build` no-var -> 0 localhost / 0 onrender / relative "/api" (== deployed). With
+  VITE_API_URL shell var -> onrender baked. So CODE IS CORRECT; the var just wasn't reaching
+  `vite build` on Cloudflare (dashboard var set but not exposed to the build / stale cache).
+- ROOT CAUSE: nothing committed sets VITE_API_URL for prod (frontend/.env was deleted), and
+  api.ts falls back to "" -> "/api". Cloudflare build produced the no-var case.
+- FIX: committed frontend/.env.production = VITE_API_URL=https://unveilix-support-api.onrender.com
+  (Vite loads .env.production ONLY in production mode). Now: prod build bakes onrender even if
+  Cloudflare's dashboard var doesn't reach vite; their dashboard var still OVERRIDES (process.env
+  priority). Dev unaffected (npm run dev = development mode, file not loaded -> /api proxy).
+  Local docker :5174 unaffected (Dockerfile ENV VITE_API_URL=localhost from ARG > .env.production).
+- VERIFIED: build no-var+.env.production -> onrender; build VITE_API_URL=localhost -> localhost;
+  docker :5174 served JS = localhost (login OK -> :8000); npm run dev login OK -> /api proxy.
+  frontend/.env.production is the backend's PUBLIC url (non-secret), committable.
+
 ### FRONTEND API-URL FIX (2026-06-23) — committed + pushed
 - BUG: committed frontend/.env had VITE_API_URL=http://localhost:8000; `vite build` baked it
   into the Cloudflare PROD bundle -> deployed site called localhost -> login failed.
