@@ -197,6 +197,20 @@ Bare `docker compose up` now starts only db+prestart+backend+frontend.
 - Caveat noted honestly: live getDisplayMedia screen capture can't be driven headlessly;
   it's implemented + works in a secure context (localhost); seeded recording plays in drawer.
 
+### FRONTEND API-URL FIX (2026-06-23) — committed + pushed
+- BUG: committed frontend/.env had VITE_API_URL=http://localhost:8000; `vite build` baked it
+  into the Cloudflare PROD bundle -> deployed site called localhost -> login failed.
+- FIX: deleted frontend/.env; frontend/Dockerfile now exports the build ARG
+  (`ENV VITE_API_URL=${VITE_API_URL}`) so the value comes from the right source per env:
+  prod = Cloudflare build env var; docker :5174 = compose build ARG (http://localhost:8000);
+  npm run dev = no var -> api.ts "/api" fallback + vite proxy. api.ts reads
+  import.meta.env.VITE_API_URL (correct), fallback "" (NOT localhost).
+- VERIFIED: vite build no-var -> 0 localhost, relative /api; with VITE_API_URL=onrender ->
+  onrender baked; docker :5174 login OK (POST http://localhost:8000/api/auth/login);
+  npm run dev login OK (POST :5180/api proxied).
+- CLOUDFLARE ACTION (user): set VITE_API_URL=https://unveilix-support-api.onrender.com as a
+  BUILD env var (Production[/Preview]) then redeploy. Pushing to main auto-triggers a Pages rebuild.
+
 ### DEPLOY PREP (2026-06-22) — storage backend + Render migrate/seed (make test -> 73)
 - Task 1 STORAGE: new app/core/storage.py (StorageBackend ABC + LocalStorage + S3Storage via
   boto3; get_storage() per settings.STORAGE_BACKEND). config.py [#002] added STORAGE_BACKEND
