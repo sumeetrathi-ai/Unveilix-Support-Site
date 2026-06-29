@@ -20,7 +20,7 @@ services:
     # Why: spec wants one-command up = db+api+web; Traefik is optional locally and
     #      its :80 bind can clash with host services.
     profiles: ["tools"]
-    image: traefik:3.6
+    image: traefik:v3.7
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
